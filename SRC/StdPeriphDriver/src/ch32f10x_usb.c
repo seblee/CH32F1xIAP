@@ -15,11 +15,11 @@ PUINT8  pEP0_RAM_Addr;
 PUINT8  pEP1_RAM_Addr;
 PUINT8  pEP2_RAM_Addr;
 PUINT8  pEP3_RAM_Addr;
-
+extern UINT8 Com_Buffer[128];
 /*******************************************************************************
 * Function Name  : DelayUs
 * Description    : Microsecond Delay Time.
-* Input          : t��Microsecond number.
+* Input          : t：Microsecond number.
 * Return         : None
 *******************************************************************************/		 
 void DelayUs( UINT16 t )
@@ -39,7 +39,7 @@ void DelayUs( UINT16 t )
 /*******************************************************************************
 * Function Name  : DelayMs
 * Description    : Millisecond Delay Time.
-* Input          : t��Millisecond number.
+* Input          : t：Millisecond number.
 * Return         : None
 *******************************************************************************/	
 void DelayMs( UINT16 t )
@@ -345,7 +345,7 @@ UINT8 WaitUSB_Interrupt( void )
 *                  ERR_USB_CONNECT
 *                  ERR_SUCCESS    
 *******************************************************************************/
-UINT8 USBHostTransact( UINT8 endp_pid, UINT8 tog, UINT16 timeout )
+UINT8 USBHostTransact( UINT8 endp_pid, UINT8 tog, UINT32 timeout )
 {
 	UINT8	TransRetry;
 	UINT8	s, r;
@@ -425,12 +425,12 @@ UINT8 USBHostTransact( UINT8 endp_pid, UINT8 tog, UINT16 timeout )
 * Return         : ERR_USB_BUF_OVER IN
 *                  ERR_SUCCESS  
 *******************************************************************************/
-UINT8 HostCtrlTransfer( PUINT8 DataBuf, PUINT16 RetLen )  
+UINT8 HostCtrlTransfer( PUINT8 DataBuf, PUINT8 RetLen )  
 {
 	UINT16  RemLen  = 0;
 	UINT8   s, RxLen, RxCnt, TxCnt;
 	PUINT8  pBuf;
-	PUINT16   pLen;
+	PUINT8   pLen;
 
 	pBuf = DataBuf;
 	pLen = RetLen;
@@ -524,7 +524,7 @@ void CopySetupReqPkg( const UINT8 *pReqPkt )
 UINT8 CtrlGetDeviceDescr( PUINT8 DataBuf )  
 {
 	UINT8   s;
-	UINT16  len;
+	UINT8 len;
 
 	UsbDevEndp0Size = DEFAULT_ENDP0_SIZE;
 	CopySetupReqPkg( SetupGetDevDescr );
@@ -547,7 +547,7 @@ UINT8 CtrlGetDeviceDescr( PUINT8 DataBuf )
 UINT8 CtrlGetConfigDescr( PUINT8 DataBuf )
 {
 	UINT8   s;
-	UINT16  len;
+	UINT8  len;
 
 	CopySetupReqPkg( SetupGetCfgDescr );
 	s = HostCtrlTransfer( DataBuf, &len );                         
@@ -775,5 +775,72 @@ UINT8 InitRootDevice( PUINT8 DataBuf )
 	return( s );		
 }
 
+/*******************************************************************************
+* Function Name  : HubGetPortStatus
+* Description    : 查询HUB端口状态,返回在Com_Buffer中
+* Input          : UINT8 HubPortIndex 
+* Output         : None
+* Return         : ERR_SUCCESS 成功
+                   ERR_USB_BUF_OVER 长度错误
+*******************************************************************************/
+UINT8   HubGetPortStatus( UINT8 HubPortIndex )   
+{
+    UINT8   s;
+    UINT8  len;
+    
+    pSetupReq -> bRequestType = HUB_GET_PORT_STATUS;
+    pSetupReq -> bRequest = HUB_GET_STATUS;
+    pSetupReq -> wValue = 0x0000;
+    pSetupReq -> wIndex = 0x0000|HubPortIndex;
+    pSetupReq -> wLength = 0x0004;
+    s = HostCtrlTransfer( Com_Buffer, &len );                           // 执行控制传输
+    if ( s != ERR_SUCCESS )
+    {
+        return( s );
+    }
+    if ( len < 4 )
+    {
+        return( ERR_USB_BUF_OVER );                                             // 描述符长度错误
+    }
+    return( ERR_SUCCESS );
+}
+
+/*******************************************************************************
+* Function Name  : HubSetPortFeature
+* Description    : 设置HUB端口特性
+* Input          : UINT8 HubPortIndex    //HUB端口
+                   UINT8 FeatureSelt     //HUB端口特性
+* Output         : None
+* Return         : ERR_SUCCESS 成功
+                   其他        错误
+*******************************************************************************/
+UINT8   HubSetPortFeature( UINT8 HubPortIndex, UINT8 FeatureSelt ) 
+{
+    pSetupReq -> bRequestType = HUB_SET_PORT_FEATURE;
+    pSetupReq -> bRequest = HUB_SET_FEATURE;
+    pSetupReq -> wValue = 0x0000|FeatureSelt;
+    pSetupReq -> wIndex = 0x0000|HubPortIndex;
+    pSetupReq -> wLength = 0x0000;
+    return( HostCtrlTransfer( NULL, NULL ) );                                 // 执行控制传输
+}
+
+/*******************************************************************************
+* Function Name  : HubClearPortFeature
+* Description    : 清除HUB端口特性
+* Input          : UINT8 HubPortIndex                                         //HUB端口
+                   UINT8 FeatureSelt                                          //HUB端口特性
+* Output         : None
+* Return         : ERR_SUCCESS 成功
+                   其他        错误
+*******************************************************************************/
+UINT8   HubClearPortFeature( UINT8 HubPortIndex, UINT8 FeatureSelt ) 
+{
+    pSetupReq -> bRequestType = HUB_CLEAR_PORT_FEATURE;
+    pSetupReq -> bRequest = HUB_CLEAR_FEATURE;
+    pSetupReq -> wValue = 0x0000|FeatureSelt;
+    pSetupReq -> wIndex = 0x0000|HubPortIndex;
+    pSetupReq -> wLength = 0x0000;
+    return( HostCtrlTransfer( NULL, NULL ) );                                // 执行控制传输
+}
 
 

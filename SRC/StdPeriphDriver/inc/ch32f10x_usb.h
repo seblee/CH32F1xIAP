@@ -613,7 +613,7 @@ __PACKED typedef struct _UDISK_BOC_CBW {/* command of BulkOnly USB-FlashDisk */
     UINT8 mCBW_LUN;
     UINT8 mCBW_CB_Len;                  /* length of command block */
     UINT8 mCBW_CB_Buf[16];              /* command block buffer */
-} UDISK_BOC_CBW, *PUDISK_BOC_CBW;
+} UDISK_BOC_CBW, *PXUDISK_BOC_CBW;
 
 
 __PACKED typedef struct _UDISK_BOC_CSW {/* status of BulkOnly USB-FlashDisk */
@@ -621,7 +621,7 @@ __PACKED typedef struct _UDISK_BOC_CSW {/* status of BulkOnly USB-FlashDisk */
     UINT32 mCBW_Tag;
     UINT32 mCSW_Residue;                /* return: remainder bytes */         /* uppest byte of remainder length, always is 0 */
     UINT8 mCSW_Status;                  /* return: result status */
-} UDISK_BOC_CSW, *PUDISK_BOC_CSW;
+} UDISK_BOC_CSW, *PXUDISK_BOC_CSW;
 
 
 extern PUINT8  pEP0_RAM_Addr;						//ep0(64)+ep4_out(64)+ep4_in(64)
@@ -732,8 +732,8 @@ void    ResetRootHubPort(void);
 UINT8   EnableRootHubPort(void);                         
 void    SelectHubPort( UINT8 HubPortIndex );
 UINT8   WaitUSB_Interrupt( void );               
-UINT8   USBHostTransact( UINT8 endp_pid, UINT8 tog, UINT16 timeout ); 
-UINT8   HostCtrlTransfer( PUINT8 DataBuf, PUINT16 RetLen );  
+UINT8   USBHostTransact( UINT8 endp_pid, UINT8 tog, UINT32 timeout ); 
+UINT8   HostCtrlTransfer( PUINT8 DataBuf, PUINT8 RetLen );  
 void CopySetupReqPkg( const UINT8 *pReqPkt );          
 UINT8 CtrlGetDeviceDescr( PUINT8 DataBuf );               
 UINT8 CtrlGetConfigDescr( PUINT8 DataBuf );                  
@@ -744,7 +744,9 @@ UINT8 CtrlSetUsbIntercace( UINT8 cfg );
 void DelayMs( UINT16 t );
 void    USB_HostInit( void );                     
 UINT8 InitRootDevice( PUINT8 DataBuf ); 	
-
+UINT8   HubGetPortStatus( UINT8 HubPortIndex );        // 查询HUB端口状态,返回在TxBuffer中
+UINT8   HubSetPortFeature( UINT8 HubPortIndex, UINT8 FeatureSelt );  // 设置HUB端口特性
+UINT8   HubClearPortFeature( UINT8 HubPortIndex, UINT8 FeatureSelt );  // 清除HUB端口特性
 
 #define mDelaymS	DelayMs
 #define mDelayuS	DelayUs
